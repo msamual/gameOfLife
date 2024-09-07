@@ -18,8 +18,10 @@ void copy(char **dest, char **src);
 int main()
 {
     int speed = 1;
-    char **map = one_buffer_alloc(SIZEY, SIZEX);
-    char **buf = one_buffer_alloc(SIZEY, SIZEX);
+    char arr1[(SIZEY * sizeof(char *)) + (SIZEX * SIZEY * sizeof(char))];
+    char arr2[(SIZEY * sizeof(char *)) + (SIZEX * SIZEY * sizeof(char))];
+    char **map = init_one_buf_array(arr1, SIZEY, SIZEX);
+    char **buf = init_one_buf_array(arr2 ,SIZEY, SIZEX);
 
     if (input_data(map, SIZEY, SIZEX))
     {
@@ -35,8 +37,6 @@ int main()
     {
         printf("Invalid map!\n");
     }
-    free(map);
-    free(buf);
     return 0;
 }
 
@@ -108,10 +108,10 @@ char **init_one_buf_array(void *buf, int sizey, int sizex) {
     return buf;
 }
 
-char **one_buffer_alloc(int sizey, int sizex) {
-    void *res = calloc((sizey * sizeof(char *)) + (sizex * sizey * sizeof(char)), sizeof(char));
-    return init_one_buf_array(res, sizey, sizex);
-}
+// char **one_buffer_alloc(int sizey, int sizex) {
+//     void *res = calloc((sizey * sizeof(char *)) + (sizex * sizey * sizeof(char)), sizeof(char));
+//     return init_one_buf_array(res, sizey, sizex);
+// }
 
 int input_data(char **arr, int sizey, int sizex) {
     int res = 1;
