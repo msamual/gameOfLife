@@ -6,34 +6,41 @@
 #define SIZEY 25
 #define ALIVE 'o'
 #define DEAD '.'
-#define STARTSPEED 1
+#define MINSPEED 1
+#define STARTSPEED 5
+#define MAXSPEED 10
+#define MINDELAY 30000
+#define DELAYSTEP 50000
 
 char **init_one_buf_array(void *buf, int sizey, int sizex);
 int input_data(char **arr, int sizey, int sizex);
-void output(char **arr, int sizey, int sizex, int speed, int first);
-void calc_new_state(char **map, char **buf);
+void output(char **arr, char **buf, int sizey, int sizex, int speed, int first);
+void calc_new_state(char **map, char **buf, char **prev);
 char get_new_state(char **map, int j, int i);
 void copy(char **dest, char **src);
 void set_non_blocking_input(int on);
 void init_input_state();
 void read_commands(int i, int *speed);
+int compare_state(char **a, char **b);
 
 int main() {
     int speed = STARTSPEED;
     char arr1[(SIZEY * sizeof(char *)) + (SIZEX * SIZEY * sizeof(char))];
     char arr2[(SIZEY * sizeof(char *)) + (SIZEX * SIZEY * sizeof(char))];
+    char arr3[(SIZEY * sizeof(char *)) + (SIZEX * SIZEY * sizeof(char))];
     char **map = init_one_buf_array(arr1, SIZEY, SIZEX);
     char **buf = init_one_buf_array(arr2, SIZEY, SIZEX);
+    char **prev = init_one_buf_array(arr2, SIZEY, SIZEX);
 
     if (input_data(map, SIZEY, SIZEX)) {
-        output(map, SIZEY, SIZEX, speed, 1);
+        output(map, buf, SIZEY, SIZEX, speed, 1);
         init_input_state();
         int i = 0;
         while (1) {
-            calc_new_state(map, buf);
-            output(map, SIZEY, SIZEX, speed, 0);
+            calc_new_state(map, buf, prev);
+            output(map, buf, SIZEY, SIZEX, speed, 0);
             read_commands(i, &speed);
-            usleep(200000 / speed);
+            usleep(DELAYSTEP * MAXSPEED - speed * DELAYSTEP + MINDELAY);
         }
     } else {
         printf("Invalid map!\n");
@@ -49,7 +56,8 @@ void read_commands(int i, int *speed)
         while ((c = getchar()) == '+' || c == '-') {
             *speed = c == '+' ? *speed + 1 : *speed - 1;
         }
-        if (*speed < 1) *speed = 1;
+        if (*speed < MINSPEED) *speed = MINSPEED;
+        if (*speed > MAXSPEED) *speed = MAXSPEED;
     }
 }
 
@@ -66,7 +74,6 @@ void set_non_blocking_input(int on)
     if (on) fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
     else fcntl(STDIN_FILENO, F_SETFL, flags & ~O_NONBLOCK);
 }
-
 
 void copy(char **dest, char **src) {
     for (int j = 0; j < SIZEY; j++) {
@@ -96,25 +103,37 @@ char get_new_state(char **map, int j, int i) {
                 : DEAD);
 }
 
-void calc_new_state(char **map, char **buf) {
+void calc_new_state(char **map, char **buf, char **prev) {
     for (int j = 0; j < SIZEY; j++) {
         for (int i = 0; i < SIZEX; i++) {
             buf[j][i] = get_new_state(map, j, i);
         }
     }
-    copy(map, buf);
+    if (!compare_state(buf, prev)) {
+        return 1;
+    }
+    else {
+        copy(prev, map);
+    }
 }
 
-void output(char **arr, int sizey, int sizex, int speed, int first) {
-    if (first) printf("\033[2J\033[1;1H");
-    printf("\033[H");
-    for (int i = 0; i < sizey; i++) {
-        for (int j = 0; j < sizex; j++) {
-            printf("%c", arr[i][j]);
+void output(char **arr, char **buf, int sizey, int sizex, int speed, int first) {
+    if (first) printf("\033[2J\033[1;1H\033[?25L");
+    else printf("\033[H");
+    for (int j = 0; j < sizey; j++) {
+        for (int i = 0; i < sizex; i++) {
+            if (first) {
+                printf("%c", arr[j][i]);
+            }
+            else if (buf[j][i] != arr[j][i]) {
+                printf("\033[%i;%iH", j+1, i+1);
+                arr[j][i] = buf[j][i];
+                printf("%c", buf[j][i]);
+            }
         }
         printf("\n");
     }
-    printf("SPEED %d\n", speed);
+    printf("SPEED(1 - 10) %d\n\001", speed);
 }
 
 char **init_one_buf_array(void *buf, int sizey, int sizex) {
