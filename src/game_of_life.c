@@ -8,36 +8,33 @@
 #define DEAD '.'
 #define MINSPEED 1
 #define STARTSPEED 5
-#define MAXSPEED 10
+#define MAXSPEED 9
 #define MINDELAY 30000
 #define DELAYSTEP 50000
 
 char **init_one_buf_array(void *buf, int sizey, int sizex);
 int input_data(char **arr, int sizey, int sizex);
 void output(char **arr, char **buf, int sizey, int sizex, int speed, int first);
-void calc_new_state(char **map, char **buf, char **prev);
+void calc_new_state(char **map, char **buf);
 char get_new_state(char **map, int j, int i);
 void copy(char **dest, char **src);
 void set_non_blocking_input(int on);
 void init_input_state();
 void read_commands(int i, int *speed);
-int compare_state(char **a, char **b);
 
 int main() {
     int speed = STARTSPEED;
     char arr1[(SIZEY * sizeof(char *)) + (SIZEX * SIZEY * sizeof(char))];
     char arr2[(SIZEY * sizeof(char *)) + (SIZEX * SIZEY * sizeof(char))];
-    char arr3[(SIZEY * sizeof(char *)) + (SIZEX * SIZEY * sizeof(char))];
     char **map = init_one_buf_array(arr1, SIZEY, SIZEX);
     char **buf = init_one_buf_array(arr2, SIZEY, SIZEX);
-    char **prev = init_one_buf_array(arr2, SIZEY, SIZEX);
 
     if (input_data(map, SIZEY, SIZEX)) {
         output(map, buf, SIZEY, SIZEX, speed, 1);
         init_input_state();
         int i = 0;
         while (1) {
-            calc_new_state(map, buf, prev);
+            calc_new_state(map, buf);
             output(map, buf, SIZEY, SIZEX, speed, 0);
             read_commands(i, &speed);
             usleep(DELAYSTEP * MAXSPEED - speed * DELAYSTEP + MINDELAY);
@@ -103,17 +100,11 @@ char get_new_state(char **map, int j, int i) {
                 : DEAD);
 }
 
-void calc_new_state(char **map, char **buf, char **prev) {
+void calc_new_state(char **map, char **buf) {
     for (int j = 0; j < SIZEY; j++) {
         for (int i = 0; i < SIZEX; i++) {
             buf[j][i] = get_new_state(map, j, i);
         }
-    }
-    if (!compare_state(buf, prev)) {
-        return 1;
-    }
-    else {
-        copy(prev, map);
     }
 }
 
@@ -133,7 +124,7 @@ void output(char **arr, char **buf, int sizey, int sizex, int speed, int first) 
         }
         printf("\n");
     }
-    printf("SPEED(1 - 10) %d\n\001", speed);
+    printf("SPEED(1 - 9) %d\n\001", speed);
 }
 
 char **init_one_buf_array(void *buf, int sizey, int sizex) {
